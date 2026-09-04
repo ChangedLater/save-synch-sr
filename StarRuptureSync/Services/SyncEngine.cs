@@ -46,6 +46,9 @@ public class SyncEngine
 
     private string LocalSessionDir(string session) => Path.Combine(_settings.SaveGamesPath, session);
 
+    /// <summary>True while StarRupture is running; <paramref name="processName"/> is the matched process.</summary>
+    public bool IsGameRunning(out string? processName) => _game.IsRunning(out processName);
+
     // ---- refresh / compare ----------------------------------------------------
 
     /// <summary>fetch + reset --hard, then compare every session (repo and local).</summary>

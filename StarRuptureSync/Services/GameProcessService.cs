@@ -10,6 +10,7 @@ public class GameProcessService
         "StarRupture",
         "StarRupture-Win64-Shipping",
         "StarRuptureClient-Win64-Shipping",
+        "StarRuptureGameSteam-Win64-Shipping",
         "StarRuptureClient"
     };
 

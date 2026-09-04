@@ -15,6 +15,8 @@ no git CLI required).
   containing its save slots (`0.sav` / `0.met`, `AutoSave0.sav` / `AutoSave0.met`, …).
 - Local vs. repo versions are compared by **SHA-256 file hash**.
 - Your Steam save folder is only touched when you press **Download**.
+- The main window shows whether StarRupture is running (re-checked every 30 s, plus a
+  **Check now** button). While it is running, Upload and Download are disabled.
 - Local saves are backed up to `%LOCALAPPDATA%\StarRuptureSync\backups\<session>\<timestamp>`
   before every download (backups are not committed to git).
 
@@ -47,7 +49,9 @@ You are asked for:
    - *No local copy – create the session in-game first* (shows step-by-step instructions)
    - *Local only – not uploaded yet*
 3. **Download** (repo → Steam): verifies StarRupture is not running, backs up your
-   current local save, then copies the repo files in.
+   current local save, then copies the repo files in. If your local copy looks
+   *newer* than the remote (or both changed), a warning dialog asks you to confirm
+   before it is overwritten.
 4. **Upload** (Steam → repo): replaces the repo's copy of the session with your local
    files, commits as you, and pushes.
    - If the push is rejected because `origin/main` advanced, the app re-fetches,
