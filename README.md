@@ -88,3 +88,7 @@ Output: `publish/StarRuptureSync.exe` (no .NET runtime install required on the t
 ## Requirements
 
 - .NET 10 SDK to build. The published exe needs nothing pre-installed.
+
+## License
+
+MIT — see [LICENSE](LICENSE).
