@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using System.Windows;
 using StarRuptureSync.Models;
 using StarRuptureSync.ViewModels;
@@ -46,8 +45,8 @@ public partial class MainWindow : Window
         new DetailsWindow(comparison) { Owner = this }.ShowDialog();
     }
 
-    private void ShowHistory(IReadOnlyList<CommitInfo> history)
+    private void ShowHistory(HistoryViewModel historyViewModel)
     {
-        new HistoryWindow(history) { Owner = this }.ShowDialog();
+        new HistoryWindow(historyViewModel) { Owner = this }.ShowDialog();
     }
 }

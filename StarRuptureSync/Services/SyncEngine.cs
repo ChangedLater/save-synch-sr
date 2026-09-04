@@ -52,6 +52,9 @@ public class SyncEngine
     /// <summary>Most recent commits on the synced branch (message + author + time), newest first.</summary>
     public IReadOnlyList<CommitInfo> History(int max = 200) => _git.History(max);
 
+    /// <summary>Session folders contained in a specific commit.</summary>
+    public IReadOnlyList<string> SessionsInCommit(string commitSha) => _git.SessionsInCommit(commitSha);
+
     // ---- refresh / compare ----------------------------------------------------
 
     /// <summary>fetch + reset --hard, then compare every session (repo and local).</summary>
@@ -212,6 +215,83 @@ public class SyncEngine
             : $"Downloaded '{session}'. Previous local save backed up to:\n{backupPath}";
         return new OperationResult(true, msg);
     }
+
+    // ---- restore from history -------------------------------------------------
+
+    /// <summary>
+    /// Check out <paramref name="commitSha"/>, copy that commit's version of
+    /// <paramref name="session"/> into the Steam save folder (backing up the current
+    /// local save first), then reset the clone back to origin/main – exactly like Refresh.
+    /// </summary>
+    public OperationResult RestoreSessionFromCommit(string commitSha, string session)
+    {
+        if (_game.IsRunning(out var proc))
+            return new OperationResult(false,
+                $"StarRupture appears to be running ({proc}). Close the game before restoring a save.");
+
+        string message;
+        try
+        {
+            _git.CheckoutCommit(commitSha);
+
+            var repoDir = GitSyncService.RepoSessionDir(session);
+            if (!Directory.Exists(repoDir) || !FileOps.SaveFileNames(repoDir).Any())
+            {
+                TryResetToMain(out _);
+                return new OperationResult(false,
+                    $"Session '{session}' has no save files in commit {Short(commitSha)}.");
+            }
+
+            var localDir = LocalSessionDir(session);
+            var backupPath = _backup.BackupSession(session, localDir);
+
+            Directory.CreateDirectory(localDir);
+            var keep = FileOps.SaveFileNames(repoDir).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            foreach (var stale in FileOps.SaveFileNames(localDir).Where(n => !keep.Contains(n)))
+                File.Delete(Path.Combine(localDir, stale));
+            FileOps.CopyDirectory(repoDir, localDir, saveFilesOnly: true);
+
+            // Local now reflects the restored commit, which is behind origin/main.
+            _settings.LastSyncedCommitBySession[session] = commitSha;
+            _settingsService.Save(_settings);
+
+            message = backupPath == null
+                ? $"Restored '{session}' from commit {Short(commitSha)} into the Steam save folder."
+                : $"Restored '{session}' from commit {Short(commitSha)}. " +
+                  $"Previous local save backed up to:\n{backupPath}";
+        }
+        catch (Exception ex)
+        {
+            TryResetToMain(out _);
+            return new OperationResult(false, $"Restore failed: {ex.Message}");
+        }
+
+        if (!TryResetToMain(out var resetError))
+        {
+            return new OperationResult(true,
+                message + $"\n\nNote: the repository could not be reset to the latest version " +
+                $"({resetError}). Press Refresh once you are back online.");
+        }
+
+        return new OperationResult(true, message);
+    }
+
+    private bool TryResetToMain(out string error)
+    {
+        try
+        {
+            _git.FetchAndResetHard();
+            error = "";
+            return true;
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+            return false;
+        }
+    }
+
+    private static string Short(string sha) => sha.Length >= 7 ? sha[..7] : sha;
 
     // ---- upload -----------------------------------------------------------
 

@@ -43,7 +43,11 @@ You are asked for:
 1. **Refresh** — `fetch`, then `reset --hard origin/main`, then compare every
    session (repo + local) by hash. Runs automatically when the main window opens.
    **History** opens a window listing recent commit messages (newest first) with
-   author, time and short SHA.
+   author, time and short SHA. From there you can **restore a session from any
+   commit**: pick a commit, pick one of the sessions it contained, and it checks
+   out that commit, backs up your current local save, copies that commit's version
+   of the session into the Steam folder, then resets the clone back to the latest
+   (same end state as Refresh). Blocked while the game is running.
 2. Select a session. Status is one of:
    - *Up to date*
    - *A newer version is available to download*

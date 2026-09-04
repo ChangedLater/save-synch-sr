@@ -162,6 +162,43 @@ public class GitSyncService
         return repo.Head.Tip?.Sha ?? "";
     }
 
+    /// <summary>Top-level session folders present in a given commit's tree.</summary>
+    public IReadOnlyList<string> SessionsInCommit(string sha)
+    {
+        try
+        {
+            using var repo = new Repository(AppPaths.Repo);
+            var commit = repo.Lookup<Commit>(sha);
+            if (commit == null)
+                return Array.Empty<string>();
+
+            return commit.Tree
+                .Where(e => e.TargetType == TreeEntryTargetType.Tree
+                            && !e.Name.Equals(".git", StringComparison.OrdinalIgnoreCase))
+                .Select(e => e.Name)
+                .OrderBy(n => n, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        }
+        catch
+        {
+            return Array.Empty<string>();
+        }
+    }
+
+    /// <summary>
+    /// Force-checkout a specific commit (detaches HEAD). Always pair with
+    /// <see cref="FetchAndResetHard"/> afterwards to return the clone to origin/main.
+    /// </summary>
+    public void CheckoutCommit(string sha)
+    {
+        using var repo = new Repository(AppPaths.Repo);
+        var commit = repo.Lookup<Commit>(sha)
+                     ?? throw new InvalidOperationException(
+                         $"Commit {sha} was not found in the repository.");
+        Commands.Checkout(repo, commit,
+            new CheckoutOptions { CheckoutModifiers = CheckoutModifiers.Force });
+    }
+
     /// <summary>Author / time / message of the most recent commit that touched a session folder.</summary>
     public (string author, DateTimeOffset whenUtc, string message)? LastChange(string session)
     {

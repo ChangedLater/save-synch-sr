@@ -58,8 +58,8 @@ public class MainViewModel : ObservableObject
     /// <summary>Raised when the user asks for the per-file details window.</summary>
     public event Action<SessionComparison>? DetailsRequested;
 
-    /// <summary>Raised with the repo commit history when the user asks to view it.</summary>
-    public event Action<IReadOnlyList<CommitInfo>>? HistoryRequested;
+    /// <summary>Raised with a ready history view model when the user asks to view history.</summary>
+    public event Action<HistoryViewModel>? HistoryRequested;
 
     public bool GameRunning
     {
@@ -322,7 +322,14 @@ public class MainViewModel : ObservableObject
     {
         IReadOnlyList<CommitInfo> history = Array.Empty<CommitInfo>();
         await RunAsync("Loading history…", () => history = _engine.History());
-        HistoryRequested?.Invoke(history);
+
+        var historyVm = new HistoryViewModel(_engine, history);
+        historyVm.RestoreCompleted += () =>
+        {
+            if (RefreshCommand.CanExecute(null))
+                RefreshCommand.Execute(null);
+        };
+        HistoryRequested?.Invoke(historyVm);
     }
 
     private bool CanDownload()
