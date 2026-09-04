@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <LangVersion>latest</LangVersion>
+    <AssemblyName>StarRuptureSync</AssemblyName>
+    <RootNamespace>StarRuptureSync</RootNamespace>
+    <Version>1.0.0</Version>
+    <ApplicationIcon></ApplicationIcon>
+    <Platforms>AnyCPU;x64</Platforms>
+    <!-- Default publish identity; overridable on the command line -->
+    <RuntimeIdentifier Condition="'$(RuntimeIdentifier)' == '' and '$(_IsPublishing)' == 'true'">win-x64</RuntimeIdentifier>
+  </PropertyGroup>
+
+  <!-- Self-contained single-file publish settings -->
+  <PropertyGroup Condition="'$(PublishSingleFile)' == 'true'">
+    <SelfContained>true</SelfContained>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+    <DebugType>embedded</DebugType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="LibGit2Sharp" Version="0.31.0" />
+  </ItemGroup>
+
+</Project>
