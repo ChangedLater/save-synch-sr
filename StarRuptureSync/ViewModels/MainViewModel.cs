@@ -33,6 +33,7 @@ public class MainViewModel : ObservableObject
         UploadCommand = new AsyncRelayCommand(UploadAsync, CanUpload);
         CheckGameCommand = new RelayCommand(CheckGameRunning);
         ShowDetailsCommand = new RelayCommand(ShowDetails, CanShowDetails);
+        ShowHistoryCommand = new AsyncRelayCommand(ShowHistoryAsync, () => !IsBusy);
 
         _gameCheckTimer = new DispatcherTimer { Interval = GameCheckInterval };
         _gameCheckTimer.Tick += (_, _) => CheckGameRunning();
@@ -52,9 +53,13 @@ public class MainViewModel : ObservableObject
     public AsyncRelayCommand UploadCommand { get; }
     public RelayCommand CheckGameCommand { get; }
     public RelayCommand ShowDetailsCommand { get; }
+    public AsyncRelayCommand ShowHistoryCommand { get; }
 
     /// <summary>Raised when the user asks for the per-file details window.</summary>
     public event Action<SessionComparison>? DetailsRequested;
+
+    /// <summary>Raised with the repo commit history when the user asks to view it.</summary>
+    public event Action<IReadOnlyList<CommitInfo>>? HistoryRequested;
 
     public bool GameRunning
     {
@@ -109,6 +114,7 @@ public class MainViewModel : ObservableObject
                 RefreshCommand.RaiseCanExecuteChanged();
                 DownloadCommand.RaiseCanExecuteChanged();
                 UploadCommand.RaiseCanExecuteChanged();
+                ShowHistoryCommand.RaiseCanExecuteChanged();
             }
         }
     }
@@ -310,6 +316,13 @@ public class MainViewModel : ObservableObject
     {
         if (SelectedSession != null)
             DetailsRequested?.Invoke(SelectedSession.Comparison);
+    }
+
+    private async Task ShowHistoryAsync()
+    {
+        IReadOnlyList<CommitInfo> history = Array.Empty<CommitInfo>();
+        await RunAsync("Loading history…", () => history = _engine.History());
+        HistoryRequested?.Invoke(history);
     }
 
     private bool CanDownload()

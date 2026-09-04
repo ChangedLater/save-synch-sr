@@ -142,3 +142,11 @@ public enum PushOutcome
 
 /// <summary>Details of who moved origin/main ahead of us, shown on a rejected push.</summary>
 public record RemoteAdvanceInfo(string Author, DateTimeOffset WhenUtc, string Message);
+
+/// <summary>One entry in the repo history view.</summary>
+public record CommitInfo(string Message, string Author, DateTimeOffset WhenUtc, string Sha)
+{
+    public string ShortSha => Sha.Length >= 7 ? Sha[..7] : Sha;
+    public string WhenText => WhenUtc.ToLocalTime().ToString("g");
+    public string Subtitle => $"{Author}  ·  {WhenText}  ·  {ShortSha}";
+}

@@ -4,6 +4,7 @@
         xmlns:svc="clr-namespace:StarRuptureSync.Services"
         Title="StarRupture Save Sync — Sign in"
         Height="620" Width="560"
+        Style="{StaticResource AppWindow}"
         WindowStartupLocation="CenterScreen"
         ResizeMode="CanMinimize">
     <Grid Margin="24">

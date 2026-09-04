@@ -27,9 +27,9 @@ public class SessionRowViewModel : ObservableObject
         SyncState.LocalAhead => new SolidColorBrush(Color.FromRgb(0x4C, 0x8D, 0xFF)),
         SyncState.RemoteAhead => new SolidColorBrush(Color.FromRgb(0xE0, 0xA3, 0x3E)),
         SyncState.Conflict => new SolidColorBrush(Color.FromRgb(0xE5, 0x54, 0x4B)),
-        SyncState.NoLocalCopy => new SolidColorBrush(Color.FromRgb(0x9A, 0xA0, 0xAD)),
-        SyncState.LocalOnly => new SolidColorBrush(Color.FromRgb(0x9A, 0xA0, 0xAD)),
-        _ => Brushes.Gray
+        SyncState.NoLocalCopy => new SolidColorBrush(Color.FromRgb(0xD5, 0xD7, 0xDE)),
+        SyncState.LocalOnly => new SolidColorBrush(Color.FromRgb(0xD5, 0xD7, 0xDE)),
+        _ => new SolidColorBrush(Color.FromRgb(0xD5, 0xD7, 0xDE))
     };
 
     public void Update(SessionComparison comparison)

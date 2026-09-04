@@ -12,15 +12,20 @@
             <SolidColorBrush x:Key="PanelAlt" Color="#31333E" />
             <SolidColorBrush x:Key="Stroke" Color="#3E4150" />
             <SolidColorBrush x:Key="Text" Color="#E7E8EC" />
-            <SolidColorBrush x:Key="TextDim" Color="#9AA0AD" />
+            <!-- "Dim" secondary text: kept near-white for readability, not grey. -->
+            <SolidColorBrush x:Key="TextDim" Color="#D5D7DE" />
             <SolidColorBrush x:Key="Accent" Color="#4C8DFF" />
             <SolidColorBrush x:Key="AccentText" Color="#FFFFFF" />
             <SolidColorBrush x:Key="Good" Color="#3FB65E" />
             <SolidColorBrush x:Key="Warn" Color="#E0A33E" />
             <SolidColorBrush x:Key="Bad" Color="#E5544B" />
 
-            <Style TargetType="{x:Type Window}">
+            <!-- Applied explicitly on every Window root: implicit Window styles are not
+                 inherited by Window-derived classes, which left windows on the OS's
+                 light background with light text. -->
+            <Style x:Key="AppWindow" TargetType="{x:Type Window}">
                 <Setter Property="Background" Value="{StaticResource Bg}" />
+                <Setter Property="Foreground" Value="{StaticResource Text}" />
                 <Setter Property="FontFamily" Value="Segoe UI" />
                 <Setter Property="FontSize" Value="13" />
                 <Setter Property="TextOptions.TextFormattingMode" Value="Display" />

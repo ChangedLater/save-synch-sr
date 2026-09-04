@@ -182,6 +182,32 @@ public class GitSyncService
         }
     }
 
+    /// <summary>Recent commits on the current branch, newest first (message, author, time, sha).</summary>
+    public IReadOnlyList<CommitInfo> History(int max = 200)
+    {
+        var list = new List<CommitInfo>();
+        try
+        {
+            using var repo = new Repository(AppPaths.Repo);
+            foreach (var c in repo.Commits
+                         .QueryBy(new CommitFilter { SortBy = CommitSortStrategies.Time })
+                         .Take(max))
+            {
+                list.Add(new CommitInfo(
+                    string.IsNullOrWhiteSpace(c.MessageShort) ? "(no message)" : c.MessageShort,
+                    c.Author.Name,
+                    c.Author.When.ToUniversalTime(),
+                    c.Sha));
+            }
+        }
+        catch
+        {
+            // No history yet / repo unavailable – return whatever we have.
+        }
+
+        return list;
+    }
+
     /// <summary>
     /// For each save file directly under a session folder, the time of the most recent
     /// commit that changed it. One history walk; keyed by file name.

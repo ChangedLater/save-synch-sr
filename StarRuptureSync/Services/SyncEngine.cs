@@ -49,6 +49,9 @@ public class SyncEngine
     /// <summary>True while StarRupture is running; <paramref name="processName"/> is the matched process.</summary>
     public bool IsGameRunning(out string? processName) => _game.IsRunning(out processName);
 
+    /// <summary>Most recent commits on the synced branch (message + author + time), newest first.</summary>
+    public IReadOnlyList<CommitInfo> History(int max = 200) => _git.History(max);
+
     // ---- refresh / compare ----------------------------------------------------
 
     /// <summary>fetch + reset --hard, then compare every session (repo and local).</summary>

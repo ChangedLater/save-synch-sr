@@ -41,7 +41,9 @@ You are asked for:
 ## Synchronising
 
 1. **Refresh** — `fetch`, then `reset --hard origin/main`, then compare every
-   session (repo + local) by hash.
+   session (repo + local) by hash. Runs automatically when the main window opens.
+   **History** opens a window listing recent commit messages (newest first) with
+   author, time and short SHA.
 2. Select a session. Status is one of:
    - *Up to date*
    - *A newer version is available to download*

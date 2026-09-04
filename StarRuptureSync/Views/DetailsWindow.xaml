@@ -4,6 +4,7 @@
         xmlns:model="clr-namespace:StarRuptureSync.Models"
         Title="Session details"
         Height="520" Width="760"
+        Style="{StaticResource AppWindow}"
         WindowStartupLocation="CenterOwner">
     <Grid Margin="18">
         <Grid.RowDefinitions>

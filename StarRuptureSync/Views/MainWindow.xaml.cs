@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Windows;
 using StarRuptureSync.Models;
 using StarRuptureSync.ViewModels;
@@ -18,9 +19,15 @@ public partial class MainWindow : Window
     private void OnDataContextChanged(object sender, DependencyPropertyChangedEventArgs e)
     {
         if (e.OldValue is MainViewModel oldVm)
+        {
             oldVm.DetailsRequested -= ShowDetails;
+            oldVm.HistoryRequested -= ShowHistory;
+        }
         if (e.NewValue is MainViewModel vm)
+        {
             vm.DetailsRequested += ShowDetails;
+            vm.HistoryRequested += ShowHistory;
+        }
     }
 
     private void OnLoaded(object sender, RoutedEventArgs e)
@@ -37,5 +44,10 @@ public partial class MainWindow : Window
     private void ShowDetails(SessionComparison comparison)
     {
         new DetailsWindow(comparison) { Owner = this }.ShowDialog();
+    }
+
+    private void ShowHistory(IReadOnlyList<CommitInfo> history)
+    {
+        new HistoryWindow(history) { Owner = this }.ShowDialog();
     }
 }

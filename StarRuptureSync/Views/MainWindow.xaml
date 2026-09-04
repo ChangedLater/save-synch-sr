@@ -4,6 +4,7 @@
         xmlns:vm="clr-namespace:StarRuptureSync.ViewModels"
         Title="StarRupture Save Sync"
         Height="720" Width="1080"
+        Style="{StaticResource AppWindow}"
         WindowStartupLocation="CenterScreen">
     <Grid>
         <Grid Margin="18">
@@ -31,10 +32,14 @@
                         <TextBlock Foreground="{StaticResource TextDim}" FontSize="11"
                                    Text="{Binding SaveGamesPath, Mode=OneWay}" />
                     </StackPanel>
-                    <Button Grid.Column="1" Content="⟳  Refresh (fetch + reset)"
-                            Style="{StaticResource AccentButton}"
-                            VerticalAlignment="Center"
-                            Command="{Binding RefreshCommand}" />
+                    <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                        <Button Content="🕘  History"
+                                Command="{Binding ShowHistoryCommand}" />
+                        <Button Content="⟳  Refresh (fetch + reset)"
+                                Style="{StaticResource AccentButton}"
+                                Margin="10,0,0,0"
+                                Command="{Binding RefreshCommand}" />
+                    </StackPanel>
                 </Grid>
             </Border>
 
