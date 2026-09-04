@@ -182,6 +182,45 @@ public class GitSyncService
         }
     }
 
+    /// <summary>
+    /// For each save file directly under a session folder, the time of the most recent
+    /// commit that changed it. One history walk; keyed by file name.
+    /// </summary>
+    public IReadOnlyDictionary<string, DateTimeOffset> LastChangeTimesForSession(string session)
+    {
+        var times = new Dictionary<string, DateTimeOffset>(StringComparer.OrdinalIgnoreCase);
+        try
+        {
+            using var repo = new Repository(AppPaths.Repo);
+            var prefix = session.Replace('\\', '/').TrimEnd('/') + "/";
+
+            foreach (var commit in repo.Commits.QueryBy(
+                         new CommitFilter { SortBy = CommitSortStrategies.Time }))
+            {
+                var parentTree = commit.Parents.FirstOrDefault()?.Tree;
+                var changes = repo.Diff.Compare<TreeChanges>(parentTree, commit.Tree);
+                var when = commit.Author.When.ToUniversalTime();
+
+                foreach (var change in changes)
+                {
+                    if (!change.Path.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                        continue;
+                    var file = change.Path[prefix.Length..];
+                    if (file.Length == 0 || file.Contains('/'))
+                        continue;
+                    // Commits are newest-first, so the first sighting is the latest change.
+                    times.TryAdd(file, when);
+                }
+            }
+        }
+        catch
+        {
+            // History unavailable – callers fall back to no timestamp.
+        }
+
+        return times;
+    }
+
     // ---- writes ------------------------------------------------------------
 
     /// <summary>Stage every change and commit. Returns the new SHA, or null if nothing changed.</summary>

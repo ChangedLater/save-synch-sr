@@ -28,7 +28,6 @@ public partial class LoginWindow : Window
         var main = new MainWindow { DataContext = mainViewModel };
         Application.Current.MainWindow = main;
         main.Show();
-        main.Loaded += (_, _) => mainViewModel.RefreshCommand.Execute(null);
         Close();
     }
 }

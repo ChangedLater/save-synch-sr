@@ -32,6 +32,7 @@ public class MainViewModel : ObservableObject
         DownloadCommand = new AsyncRelayCommand(DownloadAsync, CanDownload);
         UploadCommand = new AsyncRelayCommand(UploadAsync, CanUpload);
         CheckGameCommand = new RelayCommand(CheckGameRunning);
+        ShowDetailsCommand = new RelayCommand(ShowDetails, CanShowDetails);
 
         _gameCheckTimer = new DispatcherTimer { Interval = GameCheckInterval };
         _gameCheckTimer.Tick += (_, _) => CheckGameRunning();
@@ -46,12 +47,14 @@ public class MainViewModel : ObservableObject
 
     public ObservableCollection<SessionRowViewModel> Sessions { get; } = new();
 
-    public ObservableCollection<FileComparison> SelectedFiles { get; } = new();
-
     public AsyncRelayCommand RefreshCommand { get; }
     public AsyncRelayCommand DownloadCommand { get; }
     public AsyncRelayCommand UploadCommand { get; }
     public RelayCommand CheckGameCommand { get; }
+    public RelayCommand ShowDetailsCommand { get; }
+
+    /// <summary>Raised when the user asks for the per-file details window.</summary>
+    public event Action<SessionComparison>? DetailsRequested;
 
     public bool GameRunning
     {
@@ -83,13 +86,14 @@ public class MainViewModel : ObservableObject
         {
             if (SetProperty(ref _selectedSession, value))
             {
-                RebuildSelectedFiles();
                 OnPropertyChanged(nameof(DetailHeadline));
                 OnPropertyChanged(nameof(DetailSubtext));
+                OnPropertyChanged(nameof(SelectedFileSummary));
                 OnPropertyChanged(nameof(InstructionsVisible));
                 OnPropertyChanged(nameof(InstructionsText));
                 DownloadCommand.RaiseCanExecuteChanged();
                 UploadCommand.RaiseCanExecuteChanged();
+                ShowDetailsCommand.RaiseCanExecuteChanged();
             }
         }
     }
@@ -125,17 +129,10 @@ public class MainViewModel : ObservableObject
 
     public string DetailHeadline => SelectedSession?.Comparison.Headline ?? "Select a session";
 
-    public string DetailSubtext
-    {
-        get
-        {
-            var c = SelectedSession?.Comparison;
-            if (c?.RepoLastAuthor == null)
-                return "";
-            var when = c.RepoLastChangedUtc?.ToLocalTime().ToString("g") ?? "";
-            return $"Remote last changed by {c.RepoLastAuthor} at {when} — \"{c.RepoLastMessage}\"";
-        }
-    }
+    public string DetailSubtext => SelectedSession?.Comparison.RemoteChangeSummary ?? "";
+
+    /// <summary>One-line roll-up of the per-file comparison for the selected session.</summary>
+    public string SelectedFileSummary => SelectedSession?.Comparison.FileSummary ?? "";
 
     public bool InstructionsVisible => SelectedSession?.Comparison.State == SyncState.NoLocalCopy;
 
@@ -282,22 +279,14 @@ public class MainViewModel : ObservableObject
         SelectedSession = Sessions.FirstOrDefault(s => s.SessionName == selectedName)
                           ?? Sessions.FirstOrDefault();
 
-        RebuildSelectedFiles();
         OnPropertyChanged(nameof(DetailHeadline));
         OnPropertyChanged(nameof(DetailSubtext));
+        OnPropertyChanged(nameof(SelectedFileSummary));
         OnPropertyChanged(nameof(InstructionsVisible));
         OnPropertyChanged(nameof(InstructionsText));
         DownloadCommand.RaiseCanExecuteChanged();
         UploadCommand.RaiseCanExecuteChanged();
-    }
-
-    private void RebuildSelectedFiles()
-    {
-        SelectedFiles.Clear();
-        if (SelectedSession == null)
-            return;
-        foreach (var f in SelectedSession.Comparison.Files)
-            SelectedFiles.Add(f);
+        ShowDetailsCommand.RaiseCanExecuteChanged();
     }
 
     private void CheckGameRunning()
@@ -313,6 +302,14 @@ public class MainViewModel : ObservableObject
         {
             // Enumerating processes can fail transiently – leave the last known state.
         }
+    }
+
+    private bool CanShowDetails() => SelectedSession?.Comparison.Files.Count > 0;
+
+    private void ShowDetails()
+    {
+        if (SelectedSession != null)
+            DetailsRequested?.Invoke(SelectedSession.Comparison);
     }
 
     private bool CanDownload()

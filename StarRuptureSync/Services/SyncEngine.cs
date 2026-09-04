@@ -95,13 +95,27 @@ public class SyncEngine
             HasRepo = hasRepo
         };
 
+        var repoEditTimes = hasRepo
+            ? _git.LastChangeTimesForSession(session)
+            : (IReadOnlyDictionary<string, DateTimeOffset>)new Dictionary<string, DateTimeOffset>();
+
         foreach (var name in localNames.Concat(repoNames).Distinct(StringComparer.OrdinalIgnoreCase)
                      .OrderBy(n => n, StringComparer.OrdinalIgnoreCase))
         {
+            var localPath = Path.Combine(localDir, name);
+            var repoPath = Path.Combine(repoDir, name);
+
+            DateTimeOffset? localEdited = File.Exists(localPath)
+                ? File.GetLastWriteTimeUtc(localPath)
+                : null;
+            DateTimeOffset? repoEdited = repoEditTimes.TryGetValue(name, out var rt) ? rt : null;
+
             result.Files.Add(new FileComparison(
                 name,
-                HashUtil.HashFile(Path.Combine(localDir, name)),
-                HashUtil.HashFile(Path.Combine(repoDir, name))));
+                HashUtil.HashFile(localPath),
+                HashUtil.HashFile(repoPath),
+                localEdited,
+                repoEdited));
         }
 
         if (hasRepo)

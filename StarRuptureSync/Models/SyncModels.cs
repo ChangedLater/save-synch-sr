@@ -26,7 +26,9 @@ public enum SyncState
 public record FileComparison(
     string FileName,
     string? LocalHash,
-    string? RepoHash)
+    string? RepoHash,
+    DateTimeOffset? LocalEditedUtc = null,
+    DateTimeOffset? RepoEditedUtc = null)
 {
     public bool InLocal => LocalHash != null;
     public bool InRepo => RepoHash != null;
@@ -37,6 +39,12 @@ public record FileComparison(
         : !InLocal ? "only in repo"
         : !InRepo ? "only in local"
         : "differs";
+
+    /// <summary>Local file's last-write time, local zone (— when the file is not present locally).</summary>
+    public string LocalEditedText => LocalEditedUtc?.ToLocalTime().ToString("g") ?? "—";
+
+    /// <summary>Time of the last commit that changed this file (— when not in the repo).</summary>
+    public string RepoEditedText => RepoEditedUtc?.ToLocalTime().ToString("g") ?? "—";
 }
 
 /// <summary>Result of comparing one session's local folder against the repo.</summary>
@@ -63,6 +71,65 @@ public class SessionComparison
         SyncState.Conflict => "Conflict – local and remote both changed",
         _ => ""
     };
+
+    // ---- per-file roll-up (shown as a one-line summary; full table is in the details window) ----
+
+    public int IdenticalCount => Files.Count(f => f.Matches);
+    public int DifferingCount => Files.Count(f => f.InLocal && f.InRepo && !f.Matches);
+    public int RepoOnlyCount => Files.Count(f => f is { InRepo: true, InLocal: false });
+    public int LocalOnlyCount => Files.Count(f => f is { InLocal: true, InRepo: false });
+
+    /// <summary>Plain-language one-liner such as "All 4 files identical" or "remote has 2 newer files".</summary>
+    public string FileSummary
+    {
+        get
+        {
+            var n = Files.Count;
+            if (n == 0)
+                return "No save files in this session.";
+            if (IdenticalCount == n)
+                return $"All {n} save file{Plural(n)} identical.";
+
+            var parts = new List<string>();
+            switch (State)
+            {
+                case SyncState.RemoteAhead:
+                {
+                    var newer = DifferingCount + RepoOnlyCount;
+                    if (newer > 0) parts.Add($"remote has {newer} newer file{Plural(newer)}");
+                    if (LocalOnlyCount > 0) parts.Add($"{LocalOnlyCount} only on your PC");
+                    break;
+                }
+                case SyncState.LocalAhead:
+                {
+                    var newer = DifferingCount + LocalOnlyCount;
+                    if (newer > 0) parts.Add($"your PC has {newer} newer file{Plural(newer)}");
+                    if (RepoOnlyCount > 0) parts.Add($"{RepoOnlyCount} only on remote");
+                    break;
+                }
+                default:
+                {
+                    if (DifferingCount > 0) parts.Add($"{DifferingCount} file{Plural(DifferingCount)} differ");
+                    if (RepoOnlyCount > 0) parts.Add($"{RepoOnlyCount} only on remote");
+                    if (LocalOnlyCount > 0) parts.Add($"{LocalOnlyCount} only on your PC");
+                    break;
+                }
+            }
+
+            if (IdenticalCount > 0)
+                parts.Add($"{IdenticalCount} identical");
+            return string.Join("  •  ", parts);
+        }
+    }
+
+    /// <summary>Who last changed this session on the remote, or "" when unknown.</summary>
+    public string RemoteChangeSummary =>
+        RepoLastAuthor == null
+            ? ""
+            : $"Remote last changed by {RepoLastAuthor} at " +
+              $"{RepoLastChangedUtc?.ToLocalTime():g} — \"{RepoLastMessage}\"";
+
+    private static string Plural(int count) => count == 1 ? "" : "s";
 }
 
 /// <summary>Outcome of a push attempt.</summary>

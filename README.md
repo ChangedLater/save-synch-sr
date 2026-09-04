@@ -48,6 +48,11 @@ You are asked for:
    - *Your local save is newer – upload to share it*
    - *No local copy – create the session in-game first* (shows step-by-step instructions)
    - *Local only – not uploaded yet*
+
+   The detail pane shows a one-line file summary (e.g. "All 4 files identical",
+   "remote has 2 newer files  •  2 identical"). **View file details…** opens a window
+   with the per-file status, local last-write time, and the time of the last commit
+   that changed each file on the remote.
 3. **Download** (repo → Steam): verifies StarRupture is not running, backs up your
    current local save, then copies the repo files in. If your local copy looks
    *newer* than the remote (or both changed), a warning dialog asks you to confirm
