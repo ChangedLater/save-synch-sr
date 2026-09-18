@@ -50,6 +50,7 @@
                         <ColumnDefinition Width="Auto" />
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
                     <Ellipse Grid.Column="0" Width="11" Height="11" VerticalAlignment="Center"
                              Fill="{Binding GameStatusBrush}" />
@@ -58,7 +59,12 @@
                         <TextBlock Text="Auto-checked every 5 seconds. Sync is disabled while the game is running."
                                    Foreground="{StaticResource TextDim}" FontSize="11" />
                     </StackPanel>
-                    <Button Grid.Column="2" Content="⟳  Check now"
+                    <CheckBox Grid.Column="2" Content="Auto-sync"
+                              Foreground="{StaticResource Text}"
+                              VerticalAlignment="Center" Margin="0,0,14,0"
+                              IsChecked="{Binding AutoSyncEnabled}"
+                              ToolTip="Automatically download sessions that are cleanly ahead on the remote, and upload sessions you changed locally. Never overwrites a save that looks newer, and never force-pushes over someone else's changes." />
+                    <Button Grid.Column="3" Content="⟳  Check now"
                             VerticalAlignment="Center"
                             Command="{Binding CheckGameCommand}" />
                 </Grid>

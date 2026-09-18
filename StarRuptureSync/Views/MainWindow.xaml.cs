@@ -47,6 +47,17 @@ public partial class MainWindow : Window
 
     private void ShowHistory(HistoryViewModel historyViewModel)
     {
-        new HistoryWindow(historyViewModel) { Owner = this }.ShowDialog();
+        // The history window can restore a session (checkout/reset the repo), which
+        // must not race with a background auto-sync pass touching the same clone.
+        var vm = DataContext as MainViewModel;
+        vm?.SuspendAutoSync();
+        try
+        {
+            new HistoryWindow(historyViewModel) { Owner = this }.ShowDialog();
+        }
+        finally
+        {
+            vm?.ResumeAutoSync();
+        }
     }
 }

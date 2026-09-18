@@ -75,6 +75,23 @@ You are asked for:
      - *Discard my upload and re-pull their version*, or
      - *Overwrite their version with mine* (force push).
 
+## Auto-sync
+
+The **Auto-sync** checkbox (next to the game-running status) turns on unattended
+syncing. It's off by default. While on:
+
+- Every 60 seconds, and immediately whenever StarRupture is detected closing, the app
+  runs a pass that **downloads** any session that is cleanly ahead on the remote (only
+  once the app has synced that session before, so there's no timestamp guessing) and
+  **uploads** any session you changed locally, or that has never been uploaded.
+- It only ever acts when the direction is unambiguous. It **never** overwrites a local
+  save that looks newer, never resolves a push conflict, and never force-pushes — those
+  situations are left for you to handle with the manual Download/Upload buttons.
+- Nothing runs at all while StarRupture is running — not even a background `fetch` —
+  or while the history/restore window is open.
+- Actions are written to the Activity log; failures don't pop up a dialog since no one
+  may be watching.
+
 ## Build
 
 ```bash

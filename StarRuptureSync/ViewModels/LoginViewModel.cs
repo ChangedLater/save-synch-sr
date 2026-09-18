@@ -163,6 +163,6 @@ public class LoginViewModel : ObservableObject
         var engine = new SyncEngine(_settings, _settingsService, git,
             new BackupService(), new GameProcessService());
 
-        Completed?.Invoke(new MainViewModel(_settings, engine));
+        Completed?.Invoke(new MainViewModel(_settings, _settingsService, engine));
     }
 }

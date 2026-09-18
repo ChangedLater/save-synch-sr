@@ -64,6 +64,51 @@ public class SyncEngine
         return BuildComparisons();
     }
 
+    /// <summary>
+    /// One unattended sync pass, for the "Auto-sync" toggle. Refreshes, then acts only
+    /// where the direction is unambiguous:
+    /// - downloads a session that is cleanly ahead on the remote (a baseline is known,
+    ///   i.e. we've synced it before, so there's no guessing from timestamps);
+    /// - uploads a session that changed locally (or was never uploaded), using a normal
+    ///   (non-forced) push.
+    /// Never overwrites a local save that looks newer, never resolves a push conflict,
+    /// and never force-pushes — those stay behind the manual buttons. Nothing runs while
+    /// the game is running, since Download/Upload both read or write the Steam folder.
+    /// </summary>
+    public AutoSyncResult AutoSyncPass()
+    {
+        var log = new List<string>();
+
+        // Check first, before even fetching: no git activity at all while the game is
+        // running. BuildComparisons() (no fetch) keeps the caller's view valid instead
+        // of wiping it.
+        if (_game.IsRunning(out _))
+            return new AutoSyncResult(BuildComparisons(), log);
+
+        var comparisons = Refresh();
+
+        foreach (var cmp in comparisons)
+        {
+            if (cmp.State == SyncState.RemoteAhead
+                && _settings.LastSyncedCommitBySession.ContainsKey(cmp.SessionName))
+            {
+                var result = Download(cmp.SessionName);
+                log.Add($"Auto-sync downloaded '{cmp.SessionName}': {result.Message}");
+            }
+            else if (cmp.State is SyncState.LocalAhead or SyncState.LocalOnly)
+            {
+                // Never resolve a conflict or force-push automatically: on rejection
+                // this cancels the upload and resets the clone back to origin.
+                var result = Upload(cmp.SessionName, _ => ConflictChoice.Cancel);
+                log.Add($"Auto-sync uploaded '{cmp.SessionName}': {result.Message}");
+            }
+        }
+
+        // Re-compare so the caller sees the post-action state (e.g. now InSync),
+        // not the snapshot from before we downloaded/uploaded.
+        return new AutoSyncResult(log.Count > 0 ? BuildComparisons() : comparisons, log);
+    }
+
     public IReadOnlyList<SessionComparison> BuildComparisons()
     {
         var repoSessions = _git.Sessions();

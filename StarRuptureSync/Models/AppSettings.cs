@@ -30,6 +30,13 @@ public class AppSettings
     /// </summary>
     public Dictionary<string, string> LastSyncedCommitBySession { get; set; } = new();
 
+    /// <summary>
+    /// When true, the app periodically downloads sessions that are cleanly ahead on
+    /// the remote and uploads sessions changed locally, without prompting. It never
+    /// overwrites a save that looks newer and never force-pushes. Defaults to off.
+    /// </summary>
+    public bool AutoSyncEnabled { get; set; }
+
     [JsonIgnore]
     public bool IsComplete =>
         !string.IsNullOrWhiteSpace(Username) &&

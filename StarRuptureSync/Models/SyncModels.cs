@@ -150,3 +150,6 @@ public record CommitInfo(string Message, string Author, DateTimeOffset WhenUtc, 
     public string WhenText => WhenUtc.ToLocalTime().ToString("g");
     public string Subtitle => $"{Author}  ·  {WhenText}  ·  {ShortSha}";
 }
+
+/// <summary>Result of one unattended auto-sync pass.</summary>
+public record AutoSyncResult(IReadOnlyList<SessionComparison> Comparisons, IReadOnlyList<string> ActionLog);

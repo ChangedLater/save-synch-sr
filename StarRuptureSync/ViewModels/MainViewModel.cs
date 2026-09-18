@@ -11,10 +11,13 @@ namespace StarRuptureSync.ViewModels;
 public class MainViewModel : ObservableObject
 {
     private static readonly TimeSpan GameCheckInterval = TimeSpan.FromSeconds(5);
+    private static readonly TimeSpan AutoSyncInterval = TimeSpan.FromSeconds(60);
 
     private readonly AppSettings _settings;
+    private readonly SettingsService _settingsService;
     private readonly SyncEngine _engine;
     private readonly DispatcherTimer _gameCheckTimer;
+    private readonly DispatcherTimer _autoSyncTimer;
 
     private SessionRowViewModel? _selectedSession;
     private bool _isBusy;
@@ -22,10 +25,12 @@ public class MainViewModel : ObservableObject
     private string _log = "";
     private bool _gameRunning;
     private string _gameProcessName = "";
+    private bool? _wasGameRunning;
 
-    public MainViewModel(AppSettings settings, SyncEngine engine)
+    public MainViewModel(AppSettings settings, SettingsService settingsService, SyncEngine engine)
     {
         _settings = settings;
+        _settingsService = settingsService;
         _engine = engine;
 
         RefreshCommand = new AsyncRelayCommand(RefreshAsync, () => !IsBusy);
@@ -38,6 +43,12 @@ public class MainViewModel : ObservableObject
         _gameCheckTimer = new DispatcherTimer { Interval = GameCheckInterval };
         _gameCheckTimer.Tick += (_, _) => CheckGameRunning();
         _gameCheckTimer.Start();
+
+        _autoSyncTimer = new DispatcherTimer { Interval = AutoSyncInterval };
+        _autoSyncTimer.Tick += (_, _) => TriggerAutoSyncPass();
+        if (_settings.AutoSyncEnabled)
+            _autoSyncTimer.Start();
+
         CheckGameRunning();
     }
 
@@ -83,6 +94,37 @@ public class MainViewModel : ObservableObject
     public Brush GameStatusBrush => _gameRunning
         ? new SolidColorBrush(Color.FromRgb(0xE5, 0x54, 0x4B))
         : new SolidColorBrush(Color.FromRgb(0x3F, 0xB6, 0x5E));
+
+    /// <summary>
+    /// When on, the app periodically syncs unattended: downloads sessions cleanly ahead
+    /// on the remote and uploads sessions changed locally, without prompting. It never
+    /// overwrites a save that looks newer and never force-pushes.
+    /// </summary>
+    public bool AutoSyncEnabled
+    {
+        get => _settings.AutoSyncEnabled;
+        set
+        {
+            if (_settings.AutoSyncEnabled == value)
+                return;
+
+            _settings.AutoSyncEnabled = value;
+            _settingsService.Save(_settings);
+            OnPropertyChanged();
+
+            if (value)
+            {
+                AppendLog("Auto-sync enabled.");
+                _autoSyncTimer.Start();
+                TriggerAutoSyncPass();
+            }
+            else
+            {
+                AppendLog("Auto-sync disabled.");
+                _autoSyncTimer.Stop();
+            }
+        }
+    }
 
     public SessionRowViewModel? SelectedSession
     {
@@ -252,11 +294,21 @@ public class MainViewModel : ObservableObject
 
     // ---- helpers --------------------------------------------------------
 
-    private async Task RunAsync(string busyText, Action work)
+    /// <param name="silent">
+    /// When true, a failure is only written to the Activity log, not popped up in a
+    /// MessageBox – used for unattended auto-sync passes, which shouldn't block on
+    /// input the user may not be there to give.
+    /// </param>
+    /// <param name="logStart">
+    /// When false, skip logging <paramref name="busyText"/> itself – used for the
+    /// periodic auto-sync pass so a no-op tick doesn't spam the Activity log.
+    /// </param>
+    private async Task RunAsync(string busyText, Action work, bool silent = false, bool logStart = true)
     {
         IsBusy = true;
         BusyText = busyText;
-        AppendLog(busyText);
+        if (logStart)
+            AppendLog(busyText);
         try
         {
             await Task.Run(work);
@@ -264,8 +316,11 @@ public class MainViewModel : ObservableObject
         catch (Exception ex)
         {
             AppendLog("ERROR: " + ex.Message);
-            App.Current.Dispatcher.Invoke(() => MessageBox.Show(
-                ex.Message, "Operation failed", MessageBoxButton.OK, MessageBoxImage.Error));
+            if (!silent)
+            {
+                App.Current.Dispatcher.Invoke(() => MessageBox.Show(
+                    ex.Message, "Operation failed", MessageBoxButton.OK, MessageBoxImage.Error));
+            }
         }
         finally
         {
@@ -303,11 +358,48 @@ public class MainViewModel : ObservableObject
             _gameProcessName = name ?? "";
             GameRunning = running;
             OnPropertyChanged(nameof(GameStatusText));
+
+            // The game just closed – a good moment to auto-upload whatever changed,
+            // rather than waiting for the next timer tick.
+            if (_wasGameRunning == true && !running)
+                TriggerAutoSyncPass();
+            _wasGameRunning = running;
         }
         catch
         {
             // Enumerating processes can fail transiently – leave the last known state.
         }
+    }
+
+    /// <summary>
+    /// Pause the periodic auto-sync timer while something else that touches the repo is
+    /// open (e.g. the modal history/restore window), and resume it afterwards.
+    /// </summary>
+    public void SuspendAutoSync() => _autoSyncTimer.Stop();
+
+    public void ResumeAutoSync()
+    {
+        if (AutoSyncEnabled)
+            _autoSyncTimer.Start();
+    }
+
+    /// <summary>Fire-and-forget an auto-sync pass if enabled, idle, and the game isn't running.</summary>
+    private void TriggerAutoSyncPass()
+    {
+        if (!AutoSyncEnabled || IsBusy || GameRunning)
+            return;
+        _ = RunAutoSyncPassAsync();
+    }
+
+    private async Task RunAutoSyncPassAsync()
+    {
+        await RunAsync("Auto-sync…", () =>
+        {
+            var result = _engine.AutoSyncPass();
+            foreach (var line in result.ActionLog)
+                AppendLog(line);
+            App.Current.Dispatcher.Invoke(() => MergeSessions(result.Comparisons));
+        }, silent: true, logStart: false);
     }
 
     private bool CanShowDetails() => SelectedSession?.Comparison.Files.Count > 0;
