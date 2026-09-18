@@ -10,7 +10,7 @@ namespace StarRuptureSync.ViewModels;
 
 public class MainViewModel : ObservableObject
 {
-    private static readonly TimeSpan GameCheckInterval = TimeSpan.FromSeconds(30);
+    private static readonly TimeSpan GameCheckInterval = TimeSpan.FromSeconds(5);
 
     private readonly AppSettings _settings;
     private readonly SyncEngine _engine;

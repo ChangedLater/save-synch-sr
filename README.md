@@ -19,7 +19,7 @@ no git CLI required).
   `.gitignore` also excludes the pattern as a backstop.
 - Local vs. repo versions are compared by **SHA-256 file hash**.
 - Your Steam save folder is only touched when you press **Download**.
-- The main window shows whether StarRupture is running (re-checked every 30 s, plus a
+- The main window shows whether StarRupture is running (re-checked every 5 s, plus a
   **Check now** button). While it is running, Upload and Download are disabled.
 - Local saves are backed up to `%LOCALAPPDATA%\StarRuptureSync\backups\<session>\<timestamp>`
   before every download (backups are not committed to git).

@@ -55,7 +55,7 @@
                              Fill="{Binding GameStatusBrush}" />
                     <StackPanel Grid.Column="1" Margin="10,0,0,0" VerticalAlignment="Center">
                         <TextBlock Text="{Binding GameStatusText}" FontWeight="SemiBold" />
-                        <TextBlock Text="Auto-checked every 30 seconds. Sync is disabled while the game is running."
+                        <TextBlock Text="Auto-checked every 5 seconds. Sync is disabled while the game is running."
                                    Foreground="{StaticResource TextDim}" FontSize="11" />
                     </StackPanel>
                     <Button Grid.Column="2" Content="⟳  Check now"
