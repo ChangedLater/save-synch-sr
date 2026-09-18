@@ -12,7 +12,11 @@ no git CLI required).
   been pushed to (no commits, no `main`), the app seeds it with an initial commit
   and pushes `main` for you.
 - Each **session** (the name you gave the game in-game) is a folder in the repo
-  containing its save slots (`0.sav` / `0.met`, `AutoSave0.sav` / `AutoSave0.met`, …).
+  containing its save slots (e.g. `0.sav` / `0.met`).
+- **Auto-saves are never synced.** Any file matching `AutoSave*.*` (e.g.
+  `AutoSave0.sav`, `AutoSave0.met`) stays purely local: it's never uploaded, never
+  deleted by a download/restore, and never counted in the comparison. The repo's
+  `.gitignore` also excludes the pattern as a backstop.
 - Local vs. repo versions are compared by **SHA-256 file hash**.
 - Your Steam save folder is only touched when you press **Download**.
 - The main window shows whether StarRupture is running (re-checked every 30 s, plus a

@@ -80,6 +80,14 @@ public class GitSyncService
                 "game session; the files inside are its save slots (`*.sav` / `*.met`).\n");
         }
 
+        var gitignore = Path.Combine(AppPaths.Repo, ".gitignore");
+        if (!File.Exists(gitignore))
+        {
+            // Belt-and-braces: the app never copies auto-saves into the repo, but this
+            // keeps them out even if something is staged by hand.
+            File.WriteAllText(gitignore, "AutoSave*.*\n**/AutoSave*.*\n");
+        }
+
         Commands.Stage(repo, "*");
         var signature = new Signature(_username, EmailFor(_username), DateTimeOffset.Now);
         repo.Commit("Initialise StarRupture save sync repository", signature, signature,

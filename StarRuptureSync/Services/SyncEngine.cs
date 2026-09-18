@@ -88,8 +88,10 @@ public class SyncEngine
         var localDir = LocalSessionDir(session);
         var repoDir = GitSyncService.RepoSessionDir(session);
 
-        var localNames = FileOps.SaveFileNames(localDir).ToList();
-        var repoNames = FileOps.SaveFileNames(repoDir).ToList();
+        // Auto-saves (AutoSave*.*) are never synced, so they're excluded from the
+        // comparison entirely – they'd otherwise show as permanently "only local".
+        var localNames = FileOps.SyncableSaveFileNames(localDir).ToList();
+        var repoNames = FileOps.SyncableSaveFileNames(repoDir).ToList();
 
         var hasLocal = localNames.Count > 0;
         var hasRepo = Directory.Exists(repoDir) && repoNames.Count > 0;
@@ -169,7 +171,7 @@ public class SyncEngine
     {
         try
         {
-            return FileOps.SaveFileNames(dir)
+            return FileOps.SyncableSaveFileNames(dir)
                 .Select(n => (DateTimeOffset)File.GetLastWriteTimeUtc(Path.Combine(dir, n)))
                 .DefaultIfEmpty(DateTimeOffset.MinValue)
                 .Max();
@@ -202,8 +204,10 @@ public class SyncEngine
         var backupPath = _backup.BackupSession(session, localDir);
 
         Directory.CreateDirectory(localDir);
-        var repoNames = FileOps.SaveFileNames(repoDir).ToHashSet(StringComparer.OrdinalIgnoreCase);
-        foreach (var stale in FileOps.SaveFileNames(localDir).Where(n => !repoNames.Contains(n)))
+        // Only reconcile syncable files – never delete local auto-saves, which the
+        // repo will never contain.
+        var repoNames = FileOps.SyncableSaveFileNames(repoDir).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        foreach (var stale in FileOps.SyncableSaveFileNames(localDir).Where(n => !repoNames.Contains(n)))
             File.Delete(Path.Combine(localDir, stale));
         FileOps.CopyDirectory(repoDir, localDir, saveFilesOnly: true);
 
@@ -235,7 +239,7 @@ public class SyncEngine
             _git.CheckoutCommit(commitSha);
 
             var repoDir = GitSyncService.RepoSessionDir(session);
-            if (!Directory.Exists(repoDir) || !FileOps.SaveFileNames(repoDir).Any())
+            if (!Directory.Exists(repoDir) || !FileOps.SyncableSaveFileNames(repoDir).Any())
             {
                 TryResetToMain(out _);
                 return new OperationResult(false,
@@ -246,8 +250,9 @@ public class SyncEngine
             var backupPath = _backup.BackupSession(session, localDir);
 
             Directory.CreateDirectory(localDir);
-            var keep = FileOps.SaveFileNames(repoDir).ToHashSet(StringComparer.OrdinalIgnoreCase);
-            foreach (var stale in FileOps.SaveFileNames(localDir).Where(n => !keep.Contains(n)))
+            // Only reconcile syncable files – local auto-saves are left alone.
+            var keep = FileOps.SyncableSaveFileNames(repoDir).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            foreach (var stale in FileOps.SyncableSaveFileNames(localDir).Where(n => !keep.Contains(n)))
                 File.Delete(Path.Combine(localDir, stale));
             FileOps.CopyDirectory(repoDir, localDir, saveFilesOnly: true);
 
@@ -311,10 +316,11 @@ public class SyncEngine
         var repoDir = GitSyncService.RepoSessionDir(session);
         Directory.CreateDirectory(repoDir);
 
-        var localNames = FileOps.SaveFileNames(localDir).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        // Auto-saves (AutoSave*.*) are never written into the repo or committed.
+        var localNames = FileOps.SyncableSaveFileNames(localDir).ToHashSet(StringComparer.OrdinalIgnoreCase);
         foreach (var stale in FileOps.SaveFileNames(repoDir).Where(n => !localNames.Contains(n)))
             File.Delete(Path.Combine(repoDir, stale));
-        FileOps.CopyDirectory(localDir, repoDir, saveFilesOnly: true);
+        FileOps.CopyDirectory(localDir, repoDir, saveFilesOnly: true, excludeAutoSaves: true);
 
         var message = $"{_settings.Username}: update session '{session}' ({DateTime.Now:yyyy-MM-dd HH:mm})";
         var sha = _git.StageAndCommitAll(message, _settings.Username);
